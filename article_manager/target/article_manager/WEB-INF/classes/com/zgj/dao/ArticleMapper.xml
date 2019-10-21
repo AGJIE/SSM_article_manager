@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zgj.dao.ArticleMapper">
+
+
+    <resultMap id="BaseMap" type="com.zgj.bean.Article">
+        <id property="r_id" column="r_id" jdbcType="INTEGER"/>
+        <result property="r_author" column="r_author" jdbcType="VARCHAR"/>
+        <result property="r_summary" column="r_summary" jdbcType="VARCHAR"/>
+        <result property="r_content" column="r_content" jdbcType="VARCHAR"/>
+        <result property="r_date" column="r_date" jdbcType="VARCHAR"/>
+        <result property="r_verify" column="r_verify" jdbcType="INTEGER"/>
+        <result property="r_publish" column="r_publish" jdbcType="INTEGER"/>
+        <result property="r_status" column="r_status" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <resultMap id="WordsMap" type="com.zgj.bean.Words">
+        <id property="lw_id" column="lw_id" jdbcType="INTEGER"/>
+        <result property="lw_name" column="lw_name" jdbcType="VARCHAR"/>
+        <result property="lw_date" column="lw_date" jdbcType="VARCHAR"/>
+        <result property="lw_content" column="lw_content" jdbcType="VARCHAR"/>
+        <result property="lw_for_name" column="lw_for_name" jdbcType="VARCHAR"/>
+        <result property="lw_for_article_id" column="lw_for_article_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="ReplyMap" type="com.zgj.bean.Reply">
+        <id property="lr_id" column="lr_id" jdbcType="INTEGER"/>
+        <result property="lr_name" column="lr_name" jdbcType="VARCHAR"/>
+        <result property="lr_date" column="lr_date" jdbcType="VARCHAR"/>
+        <result property="lr_content" column="lr_content" jdbcType="VARCHAR"/>
+        <result property="lr_for_name" column="lr_for_name" jdbcType="VARCHAR"/>
+        <result property="lr_for_words" column="lr_for_words" jdbcType="VARCHAR"/>
+        <result property="lr_for_reply" column="lr_for_reply" jdbcType="VARCHAR"/>
+        <result property="lr_for_article_id" column="lr_for_article_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+
+
+    <!--保存文章信息-->
+    <insert id="saveArticle" parameterType="com.zgj.bean.Article">
+        insert into article (r_author, r_summary, r_content, r_date, r_verify, r_publish, r_status)
+        VALUES (#{r_author}, #{r_summary}, #{r_content}, #{r_date}, #{r_verify}, #{r_publish}, #{r_status});
+    </insert>
+
+    <!-- 查询（未clean）总记录数 -->
+    <select id="selectCount" resultType="int">
+        select count(*)
+        from article
+        where r_status = 0;
+    </select>
+
+    <!-- 查询（已clean）总记录数 -->
+    <select id="selectCount2" resultType="int">
+        select count(*)
+        from article
+        where r_status = 1;
+    </select>
+
+
+    <!--多条件查询-->
+    <select id="findConByPage" resultMap="BaseMap" parameterType="map">
+        select * from article
+        <!-- 表示我进入的是文章列表页面 -->
+        <if test="goId == 0">
+            where r_status = 0
+        </if>
+        <!-- 表示我进入的是回收站列表页面 -->
+        <if test="goId == 1">
+            where r_status = 1
+        </if>
+        <!--文章作者-->
+        <if test="r_author != null">
+          and r_author like #{r_author}
+        </if>
+#        <!--审核-->
+        <if test="r_verify != null">
+            and r_verify = #{r_verify}
+        </if>
+        <!--状态-->
+        <if test="r_publish != null">
+            and r_publish = #{r_publish}
+        </if>
+#        <!--存在-->
+        <if test="r_status != null">
+            and r_status = #{r_status}
+        </if>
+        <!--分页-->
+        <if test="start != null">
+            limit #{start},#{size}
+        </if>
+    </select>
+
+    <!--文章删除功能（仅把文章放入到回收站）-->
+    <update id="clean" parameterType="int">
+        update article
+        set r_status = 1
+        where r_id = #{r_id};
+    </update>
+
+    <!--回收站-->
+    <!--恢复已删除的文章-->
+    <update id="restore" parameterType="int">
+        update article
+        set r_status = 0
+        where r_id = #{r_id};
+    </update>
+
+    <!--删除文章-->
+    <delete id="delete" parameterType="int">
+        delete
+        from article
+        where r_id = #{r_id};
+    </delete>
+
+    <!--文章内容页面-->
+    <!--根据id查询文章-->
+    <select id="findById" parameterType="int" resultType="com.zgj.bean.Article">
+        select *
+        from article
+        where r_id = #{r_id};
+    </select>
+
+    <update id="update" parameterType="com.zgj.bean.Article">
+        update article set
+          r_author   = #{r_author},
+          r_summary  = #{r_summary},
+          r_content  = #{r_content},
+          r_date     = #{r_date},
+          r_verify   = #{r_verify},
+          r_publish  = #{r_publish},
+          r_status   = #{r_status}
+        where r_id   = #{r_id}
+    </update>
+
+    <!--留言内容-->
+    <!--查询留言内容-->
+    <select id="findByWords"  resultMap="WordsMap">
+        select * from words
+    </select>
+
+    <!--查询回复内容-->
+    <select id="findByReply" resultMap="ReplyMap">
+        select * from reply
+    </select>
+
+    <!--保存留言内容-->
+    <insert id="saveWords" parameterType="com.zgj.bean.Words">
+        insert into words(
+        lw_name,
+        lw_date,
+        lw_content,
+        lw_for_name,
+        lw_for_article_id
+        )
+        values(
+          #{lw_name},
+          #{lw_date},
+          #{lw_content},
+          #{lw_for_name},
+          #{lw_for_article_id}
+        )
+    </insert>
+
+    <!--保存回复内容-->
+    <insert id="saveReply" parameterType="com.zgj.bean.Reply">
+        insert into reply(
+        lr_name,
+        lr_date,
+        lr_content,
+        lr_for_name,
+        lr_for_words,
+        lr_for_reply,
+        lr_for_article_id
+        )
+        values (
+        #{lr_name},
+        #{lr_date},
+        #{lr_content},
+        #{lr_for_name},
+        #{lr_for_words},
+        #{lr_for_reply},
+        #{lr_for_article_id}
+         )
+    </insert>
+
+
+
+
+</mapper>
